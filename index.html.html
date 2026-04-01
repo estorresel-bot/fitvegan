@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FitVegan">
+<meta name="theme-color" content="#0a0a0a">
+<title>FitVegan — estorresel</title>
+
+<!-- PWA Icon generado con canvas (se inyecta via JS) -->
+<link id="apple-touch-icon" rel="apple-touch-icon">
+
+<style>
+:root {
+  --green: #1D9E75;
+  --green-light: #E1F5EE;
+  --green-dark: #0F6E56;
+  --amber: #EF9F27;
+  --amber-light: #FAEEDA;
+  --blue: #378ADD;
+  --blue-light: #E6F1FB;
+  --red: #E24B4A;
+  --red-light: #FCEBEB;
+  --bg: #0a0a0a;
+  --bg2: #141414;
+  --bg3: #1c1c1c;
+  --bg4: #242424;
+  --text: #f0f0f0;
+  --text2: #999;
+  --text3: #666;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --safe-top: env(safe-area-inset-top, 44px);
+  --safe-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Text', sans-serif; }
+
+/* SPLASH */
+#splash {
+  position: fixed; inset: 0; background: var(--bg); z-index: 999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  transition: opacity 0.4s;
+}
+#splash svg { width: 72px; height: 72px; }
+#splash h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+#splash p { font-size: 14px; color: var(--text2); }
+.splash-bar { width: 160px; height: 3px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+.splash-fill { height: 100%; background: var(--green); border-radius: 99px; animation: fill 1.4s ease forwards; }
+@keyframes fill { from { width: 0% } to { width: 100% } }
+
+/* LAYOUT */
+#app { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+/* HEADER */
+.header {
+  padding: calc(var(--safe-top) + 12px) 20px 12px;
+  background: var(--bg); border-bottom: 0.5px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.header-left h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+.header-left p { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.score-pill { background: var(--green); color: #fff; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 99px; }
+
+/* SCROLL AREA */
+.scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--safe-bottom) + 72px); }
+.scroll-area::-webkit-scrollbar { display: none; }
+
+/* BOTTOM NAV */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  padding: 8px 0 calc(var(--safe-bottom) + 4px);
+  background: rgba(10,10,10,0.92); backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 0.5px solid var(--border);
+  display: flex; z-index: 50;
+}
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; transition: opacity 0.15s; }
+.nav-icon { font-size: 22px; line-height: 1; }
+.nav-label { font-size: 10px; color: var(--text3); font-weight: 500; }
+.nav-item.active .nav-label { color: var(--green); }
+.nav-item.active .nav-icon { filter: none; }
+
+/* TABS */
+.tab { display: none; padding: 16px 16px 0; }
+.tab.active { display: block; }
+
+/* SECTION TITLE */
+.sec { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin: 20px 0 10px; }
+.sec:first-child { margin-top: 4px; }
+
+/* CARDS */
+.card { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px 16px; margin-bottom: 10px; }
+.card-sm { background: var(--bg2); border-radius: var(--radius-sm); border: 0.5px solid var(--border); padding: 12px; }
+
+/* METRIC GRID */
+.metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
+.metric-card { background: var(--bg2); border-radius: var(--radius-sm); border: 0.5px solid var(--border); padding: 14px; }
+.metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.metric-val { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+.metric-unit { font-size: 13px; font-weight: 400; color: var(--text2); }
+.badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 99px; margin-top: 6px; }
+.badge-ok { background: rgba(29,158,117,0.2); color: #5DCAA5; }
+.badge-warn { background: rgba(239,159,39,0.2); color: #EF9F27; }
+.badge-bad { background: rgba(226,75,74,0.2); color: #E24B4A; }
+
+/* PROGRESS ROWS */
+.prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.prog-label { font-size: 12px; color: var(--text2); width: 110px; flex-shrink: 0; }
+.prog-track { flex: 1; height: 5px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+.prog-val { font-size: 11px; color: var(--text3); width: 44px; text-align: right; flex-shrink: 0; }
+
+/* DAY SELECTOR */
+.day-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
+.day-scroll::-webkit-scrollbar { display: none; }
+.day-pill { flex-shrink: 0; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 99px; padding: 8px 16px; cursor: pointer; transition: all 0.15s; text-align: center; }
+.day-pill.active { background: var(--green); border-color: var(--green); }
+.day-pill-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.day-pill.active .day-pill-name { color: #fff; }
+.day-pill-type { font-size: 10px; color: var(--text3); margin-top: 1px; white-space: nowrap; }
+.day-pill.active .day-pill-type { color: rgba(255,255,255,0.75); }
+
+/* EXERCISE ITEMS */
+.ex-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg3); border-radius: var(--radius-sm); margin-bottom: 6px; cursor: pointer; active-opacity: 0.7; transition: background 0.1s; }
+.ex-item:active { background: var(--bg4); }
+.ex-vis { width: 44px; height: 36px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: var(--bg2); display: flex; align-items: center; justify-content: center; }
+.ex-info { flex: 1; min-width: 0; }
+.ex-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.ex-sets { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.ex-tag { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 99px; background: rgba(29,158,117,0.18); color: #5DCAA5; flex-shrink: 0; white-space: nowrap; }
+.ex-tag.hiit { background: rgba(239,159,39,0.18); color: #EF9F27; }
+
+/* MEAL CARDS */
+.meal-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.meal-title { font-size: 15px; font-weight: 700; }
+.meal-kcal { font-size: 12px; color: var(--text3); }
+.food-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 0.5px solid var(--border); }
+.food-row:last-child { border-bottom: none; }
+.food-emoji { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+.food-name { flex: 1; font-size: 13px; color: var(--text); }
+.food-macro { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+/* MACRO RING */
+.macro-wrap { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+.macro-legend { flex: 1; }
+.macro-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.macro-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.macro-lbl { font-size: 13px; color: var(--text2); flex: 1; }
+.macro-g { font-size: 13px; font-weight: 600; color: var(--text); }
+
+/* SUPPLEMENTS */
+.supp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.supp-card { background: var(--bg2); border-radius: var(--radius-sm); border: 0.5px solid var(--border); padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.supp-card.done { border-color: var(--green); background: rgba(29,158,117,0.1); }
+.supp-icon { font-size: 22px; margin-bottom: 5px; }
+.supp-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.supp-dose { font-size: 10px; color: var(--text3); margin-bottom: 8px; line-height: 1.3; }
+.supp-btn { font-size: 10px; font-weight: 600; padding: 4px 6px; border-radius: 6px; background: var(--bg3); color: var(--text3); }
+.supp-card.done .supp-btn { background: rgba(29,158,117,0.25); color: #5DCAA5; }
+
+/* WATER */
+.water-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.glass { width: 36px; height: 36px; border-radius: 8px; background: var(--bg3); border: 0.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; transition: all 0.15s; }
+.glass.filled { background: rgba(55,138,221,0.2); border-color: var(--blue); }
+.water-info { font-size: 12px; color: var(--text3); margin-top: 8px; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
+.stat-card { background: var(--bg2); border-radius: var(--radius-sm); border: 0.5px solid var(--border); padding: 14px; }
+.stat-lbl { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.stat-val { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+.stat-unit { font-size: 13px; font-weight: 400; color: var(--text2); }
+.stat-chg { font-size: 11px; margin-top: 4px; }
+.chg-up { color: #E24B4A; }
+.chg-ok { color: #5DCAA5; }
+.chg-neu { color: var(--text3); }
+
+/* CHART WRAPPER */
+.chart-card { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px; margin-bottom: 10px; }
+.chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+.chart-legend { display: flex; gap: 14px; margin-bottom: 10px; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); }
+.leg-line { width: 16px; height: 2px; border-radius: 2px; }
+
+/* MINI CHART (SVG inline) */
+.mini-chart { width: 100%; height: 100px; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; flex-direction: column; justify-content: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal-sheet { background: var(--bg2); border-radius: 20px 20px 0 0; padding: 20px 20px calc(var(--safe-bottom) + 24px); transform: translateY(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1); max-height: 85vh; overflow-y: auto; }
+.modal-overlay.open .modal-sheet { transform: translateY(0); }
+.modal-handle { width: 36px; height: 4px; background: var(--bg4); border-radius: 99px; margin: 0 auto 16px; }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--text3); margin-bottom: 14px; }
+.modal-vis { border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; min-height: 110px; background: var(--bg3); }
+.modal-desc { font-size: 13px; color: var(--text2); line-height: 1.65; margin-bottom: 16px; }
+.modal-close { width: 100%; padding: 14px; border: none; background: var(--bg3); color: var(--text); font-size: 15px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; }
+
+/* INSTALL BANNER */
+.install-banner { background: rgba(29,158,117,0.12); border: 0.5px solid rgba(29,158,117,0.3); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.install-banner .i-icon { font-size: 20px; flex-shrink: 0; }
+.install-banner .i-text { font-size: 12px; color: var(--text2); line-height: 1.5; flex: 1; }
+.install-banner .i-text strong { color: var(--green); }
+.install-dismiss { font-size: 18px; color: var(--text3); cursor: pointer; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="72" height="72" rx="18" fill="#141414"/>
+    <circle cx="36" cy="28" r="10" fill="#1D9E75"/>
+    <path d="M20 52 Q36 40 52 52" stroke="#1D9E75" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M26 44 Q36 36 46 44" stroke="#0F6E56" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </svg>
+  <h1>FitVegan</h1>
+  <p>estorresel · Protocolo activo</p>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h2 id="tab-title">Dashboard</h2>
+      <p id="tab-date">Cargando...</p>
+    </div>
+    <div class="score-pill">Score 78</div>
+  </div>
+
+  <!-- SCROLL -->
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- DASHBOARD TAB -->
+    <div class="tab active" id="tab-dashboard">
+      <div id="install-banner" class="install-banner">
+        <span class="i-icon">📲</span>
+        <div class="i-text">Para instalar: toca <strong>Compartir</strong> → <strong>Añadir a pantalla de inicio</strong></div>
+        <span class="install-dismiss" onclick="document.getElementById('install-banner').style.display='none'">×</span>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">Peso</div>
+          <div class="metric-val">73.6<span class="metric-unit">kg</span></div>
+          <span class="badge badge-ok">IMC 23.8</span>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Grasa corp.</div>
+          <div class="metric-val">21.2<span class="metric-unit">%</span></div>
+          <span class="badge badge-warn">Obj. 16%</span>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Grasa visceral</div>
+          <div class="metric-val">11</div>
+          <span class="badge badge-bad">Obj. &lt;9</span>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Agua corporal</div>
+          <div class="metric-val">54<span class="metric-unit">%</span></div>
+          <span class="badge badge-bad">Obj. 60%</span>
+        </div>
+      </div>
+
+      <p class="sec">Objetivos de hoy</p>
+      <div class="card">
+        <div class="prog-row">
+          <span class="prog-label">Proteína</span>
+          <div class="prog-track"><div class="prog-fill" style="width:80%;background:#1D9E75;"></div></div>
+          <span class="prog-val">117/147g</span>
+        </div>
+        <div class="prog-row">
+          <span class="prog-label">Agua</span>
+          <div class="prog-track"><div class="prog-fill" style="width:60%;background:#378ADD;"></div></div>
+          <span class="prog-val">6/10</span>
+        </div>
+        <div class="prog-row">
+          <span class="prog-label">Déficit kcal</span>
+          <div class="prog-track"><div class="prog-fill" style="width:85%;background:#EF9F27;"></div></div>
+          <span class="prog-val">340/400</span>
+        </div>
+        <div class="prog-row" style="margin-bottom:0;">
+          <span class="prog-label">Días entreno</span>
+          <div class="prog-track"><div class="prog-fill" style="width:67%;background:#D4537E;"></div></div>
+          <span class="prog-val">4/6</span>
+        </div>
+      </div>
+
+      <p class="sec">Entreno hoy · Lunes — Empuje</p>
+      <div class="card" style="padding:10px 12px;">
+        <div id="today-exercises"></div>
+      </div>
+
+      <p class="sec">Hidratación · objetivo 3L</p>
+      <div class="card">
+        <div class="water-grid" id="glasses-dash"></div>
+        <div class="water-info" id="water-info-dash">Toca los vasos para registrar</div>
+      </div>
+    </div>
+
+    <!-- ENTRENO TAB -->
+    <div class="tab" id="tab-entreno">
+      <div class="day-scroll" id="day-scroll"></div>
+      <div id="day-detail-content"></div>
+    </div>
+
+    <!-- NUTRICION TAB -->
+    <div class="tab" id="tab-nutricion">
+      <p class="sec">Macros diarios</p>
+      <div class="card">
+        <div class="macro-wrap">
+          <svg width="90" height="90" viewBox="0 0 90 90">
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#1c1c1c" stroke-width="9"/>
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#1D9E75" stroke-width="9" stroke-dasharray="90 136" stroke-dashoffset="-10" stroke-linecap="round"/>
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#EF9F27" stroke-width="9" stroke-dasharray="50 136" stroke-dashoffset="-100" stroke-linecap="round"/>
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#378ADD" stroke-width="9" stroke-dasharray="40 136" stroke-dashoffset="-150" stroke-linecap="round"/>
+            <text x="45" y="42" text-anchor="middle" font-size="14" font-weight="700" fill="#f0f0f0" font-family="-apple-system">1900</text>
+            <text x="45" y="55" text-anchor="middle" font-size="10" fill="#666" font-family="-apple-system">kcal</text>
+          </svg>
+          <div class="macro-legend">
+            <div class="macro-row"><div class="macro-dot" style="background:#1D9E75;"></div><span class="macro-lbl">Proteína</span><span class="macro-g">140g</span></div>
+            <div class="macro-row"><div class="macro-dot" style="background:#EF9F27;"></div><span class="macro-lbl">Carbos</span><span class="macro-g">210g</span></div>
+            <div class="macro-row"><div class="macro-dot" style="background:#378ADD;"></div><span class="macro-lbl">Grasas</span><span class="macro-g">55g</span></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="sec">Plan de comidas</p>
+      <div id="meals-container"></div>
+
+      <p class="sec">Suplementación diaria</p>
+      <div class="supp-grid" id="supps-container"></div>
+
+      <p class="sec">Agua</p>
+      <div class="card">
+        <div class="water-grid" id="glasses-nut"></div>
+        <div class="water-info" id="water-info-nut"></div>
+      </div>
+    </div>
+
+    <!-- PROGRESO TAB -->
+    <div class="tab" id="tab-progreso">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-lbl">Grasa visceral</div>
+          <div class="stat-val" style="color:#E24B4A;">11</div>
+          <div class="stat-chg chg-up">↑ Obj. &lt;9</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Grasa corporal</div>
+          <div class="stat-val" style="color:#EF9F27;">21.2<span class="stat-unit">%</span></div>
+          <div class="stat-chg chg-neu">→ Obj. 16%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Masa muscular</div>
+          <div class="stat-val" style="color:#1D9E75;">55<span class="stat-unit">kg</span></div>
+          <div class="stat-chg chg-ok">✓ Normal</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Agua corporal</div>
+          <div class="stat-val" style="color:#378ADD;">54<span class="stat-unit">%</span></div>
+          <div class="stat-chg chg-up">↓ Obj. 60%</div>
+        </div>
+      </div>
+
+      <p class="sec">Proyección 14 semanas</p>
+      <div class="chart-card">
+        <div class="chart-title">Grasa visceral</div>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-line" style="background:#E24B4A;"></div>Actual</div>
+          <div class="leg-item"><div class="leg-line" style="background:#1D9E75;border-top:2px dashed #1D9E75;height:0;"></div>Objetivo (&lt;9)</div>
+        </div>
+        <svg class="mini-chart" id="chart-visceral" viewBox="0 0 340 100" preserveAspectRatio="none"></svg>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Grasa corporal (%)</div>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-line" style="background:#EF9F27;"></div>Actual</div>
+          <div class="leg-item"><div class="leg-line" style="background:#1D9E75;"></div>Objetivo (16%)</div>
+        </div>
+        <svg class="mini-chart" id="chart-fat" viewBox="0 0 340 100" preserveAspectRatio="none"></svg>
+      </div>
+
+      <p class="sec">Horizonte temporal</p>
+      <div class="card">
+        <div class="prog-row">
+          <span class="prog-label">Grasa visceral</span>
+          <div class="prog-track"><div class="prog-fill" style="width:8%;background:#E24B4A;"></div></div>
+          <span class="prog-val">S1/14</span>
+        </div>
+        <div class="prog-row" style="margin-bottom:0;">
+          <span class="prog-label">Grasa corporal</span>
+          <div class="prog-track"><div class="prog-fill" style="width:5%;background:#EF9F27;"></div></div>
+          <span class="prog-val">S1/14</span>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.5;">Estimación con déficit 300-400 kcal/día y 6 días de entreno semanal.</p>
+      </div>
+    </div>
+
+  </div><!-- end scroll-area -->
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="showTab('dashboard',this,'Dashboard','Semana 1 · Protocolo activo')">
+      <span class="nav-icon">⊞</span><span class="nav-label">Inicio</span>
+    </div>
+    <div class="nav-item" onclick="showTab('entreno',this,'Entreno','Plan semanal · 6 días')">
+      <span class="nav-icon">◎</span><span class="nav-label">Entreno</span>
+    </div>
+    <div class="nav-item" onclick="showTab('nutricion',this,'Nutrición','Dieta vegana · 1900 kcal')">
+      <span class="nav-icon">◈</span><span class="nav-label">Nutrición</span>
+    </div>
+    <div class="nav-item" onclick="showTab('progreso',this,'Progreso','Métricas · 1 Abril 2026')">
+      <span class="nav-icon">◷</span><span class="nav-label">Progreso</span>
+    </div>
+  </div>
+
+</div><!-- end app -->
+
+<!-- MODAL BOTTOM SHEET -->
+<div class="modal-overlay" id="modal" onclick="handleModalClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="m-title"></div>
+    <div class="modal-sub" id="m-sub"></div>
+    <div class="modal-vis" id="m-vis"></div>
+    <div class="modal-desc" id="m-desc"></div>
+    <button class="modal-close" onclick="closeModal()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+
+const DAYS = [
+  { name:'Lun', short:'L', type:'Empuje', color:'#1D9E75', icon:'💪',
+    exercises:[
+      {name:'Push-ups declinados', sets:'4 × 12-15', muscle:'Pecho', tag:'fuerza', desc:'Pies elevados en silla. Manos al ancho de hombros. Cuerpo rígido. Desciende el pecho a 2cm del suelo. Activa glúteo y core todo el tiempo. Foco: pectoral superior.',svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#1a2e27" rx="8"/><rect x="140" y="55" width="30" height="8" rx="3" fill="#1D9E75"/><circle cx="50" cy="30" r="8" fill="#5DCAA5"/><line x1="50" y1="38" x2="50" y2="58" stroke="#5DCAA5" stroke-width="2.5"/><line x1="50" y1="46" x2="30" y2="56" stroke="#5DCAA5" stroke-width="2"/><line x1="50" y1="46" x2="70" y2="56" stroke="#5DCAA5" stroke-width="2"/><line x1="50" y1="58" x2="36" y2="72" stroke="#5DCAA5" stroke-width="2"/><line x1="50" y1="58" x2="64" y2="72" stroke="#5DCAA5" stroke-width="2"/><path d="M72 55 Q110 52 142 56" stroke="#1D9E75" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/></svg>'},
+      {name:'Dips en paralelas', sets:'4 × 10-12', muscle:'Tríceps', tag:'fuerza', desc:'Agarra paralelas con brazos extendidos. Inclínate ligeramente adelante. Desciende hasta codos a 90°. No bajes más para proteger hombros. Empuja hasta extensión completa.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#1a2e27" rx="8"/><line x1="55" y1="10" x2="55" y2="90" stroke="#1D9E75" stroke-width="3"/><line x1="125" y1="10" x2="125" y2="90" stroke="#1D9E75" stroke-width="3"/><circle cx="90" cy="38" r="8" fill="#5DCAA5"/><line x1="90" y1="46" x2="90" y2="64" stroke="#5DCAA5" stroke-width="2.5"/><line x1="90" y1="54" x2="57" y2="44" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="54" x2="123" y2="44" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="64" x2="74" y2="80" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="64" x2="106" y2="80" stroke="#5DCAA5" stroke-width="2"/></svg>'},
+      {name:'Pike push-ups', sets:'3 × 10', muscle:'Hombros', tag:'fuerza', desc:'Caderas elevadas en V invertida. Manos al ancho de hombros. Dobla codos hacia afuera y baja la cabeza entre las manos. Cuanto más vertical el torso, más deltoides activas.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#1a2e27" rx="8"/><circle cx="90" cy="18" r="7" fill="#5DCAA5"/><line x1="90" y1="25" x2="90" y2="52" stroke="#5DCAA5" stroke-width="2.5"/><line x1="90" y1="35" x2="58" y2="52" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="35" x2="122" y2="52" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="52" x2="62" y2="82" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="52" x2="118" y2="82" stroke="#5DCAA5" stroke-width="2"/><circle cx="60" cy="84" r="4" fill="#1D9E75"/><circle cx="120" cy="84" r="4" fill="#1D9E75"/></svg>'},
+      {name:'Push-ups arquero', sets:'3 × 8 c/lado', muscle:'Pecho', tag:'fuerza', desc:'Manos muy separadas (doble ancho hombros). Desplaza el cuerpo hacia un lado doblando ese codo mientras el otro queda extendido. Alterna. Progresión al one-arm push-up.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#1a2e27" rx="8"/><circle cx="90" cy="28" r="7" fill="#5DCAA5"/><line x1="90" y1="35" x2="90" y2="56" stroke="#5DCAA5" stroke-width="2.5"/><line x1="90" y1="44" x2="38" y2="50" stroke="#5DCAA5" stroke-width="2.5"/><line x1="90" y1="44" x2="148" y2="40" stroke="#5DCAA5" stroke-width="1.5" stroke-dasharray="3,2"/><circle cx="36" cy="52" r="5" fill="#1D9E75"/><circle cx="150" cy="40" r="4" fill="#333"/></svg>'},
+      {name:'Finalizador HIIT', sets:'3R: 20 push + 15 MC + 10 burpees', muscle:'Full body', tag:'hiit', desc:'3 rondas sin parar: 20 push-ups estándar → 15 mountain climbers → 10 burpees → 60s descanso. Mantén ritmo constante, no explosivo. Objetivo: frecuencia cardíaca 140-160ppm.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2e1f0a" rx="8"/><circle cx="30" cy="20" r="6" fill="#EF9F27"/><line x1="30" y1="26" x2="30" y2="46" stroke="#EF9F27" stroke-width="2"/><line x1="30" y1="34" x2="18" y2="40" stroke="#EF9F27" stroke-width="1.5"/><line x1="30" y1="34" x2="42" y2="40" stroke="#EF9F27" stroke-width="1.5"/><line x1="30" y1="46" x2="22" y2="58" stroke="#EF9F27" stroke-width="1.5"/><line x1="30" y1="46" x2="38" y2="58" stroke="#EF9F27" stroke-width="1.5"/><text x="55" y="35" font-size="18" fill="#EF9F27">→</text><circle cx="90" cy="50" r="6" fill="#EF9F27"/><line x1="90" y1="56" x2="90" y2="72" stroke="#EF9F27" stroke-width="2"/><line x1="90" y1="62" x2="72" y2="68" stroke="#EF9F27" stroke-width="1.5"/><line x1="90" y1="62" x2="108" y2="68" stroke="#EF9F27" stroke-width="1.5"/><line x1="90" y1="72" x2="80" y2="84" stroke="#EF9F27" stroke-width="1.5"/><line x1="90" y1="72" x2="100" y2="84" stroke="#EF9F27" stroke-width="1.5"/><text x="118" y="55" font-size="18" fill="#EF9F27">→</text><circle cx="158" cy="14" r="6" fill="#EF9F27"/><line x1="148" y1="10" x2="158" y2="20" stroke="#EF9F27" stroke-width="1.5"/><line x1="168" y1="10" x2="158" y2="20" stroke="#EF9F27" stroke-width="1.5"/><line x1="158" y1="20" x2="158" y2="38" stroke="#EF9F27" stroke-width="2"/><line x1="158" y1="38" x2="148" y2="50" stroke="#EF9F27" stroke-width="1.5"/><line x1="158" y1="38" x2="168" y2="50" stroke="#EF9F27" stroke-width="1.5"/></svg>'},
+    ]
+  },
+  { name:'Mar', short:'M', type:'Cardio Z2 + Core', color:'#378ADD', icon:'🏃',
+    exercises:[
+      {name:'Cardio Zona 2', sets:'45 min · 115-135ppm', muscle:'Cardiovascular', tag:'cardio', desc:'Correr suave, bici o caminar rápido en cuesta. Si puedes hablar frases completas estás en zona correcta. Este es el estímulo más eficiente para reducir grasa visceral.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d1f2e" rx="8"/><path d="M20 70 Q60 30 90 55 Q120 80 160 25" stroke="#378ADD" stroke-width="2" fill="none"/><circle cx="160" cy="25" r="5" fill="#378ADD"/><text x="10" y="90" font-size="10" fill="#666" font-family="-apple-system">115</text><text x="150" y="90" font-size="10" fill="#666" font-family="-apple-system">135 ppm</text><line x1="10" y1="75" x2="170" y2="75" stroke="#1c3a52" stroke-width="1"/></svg>'},
+      {name:'Dead bug', sets:'3 × 10 c/lado · lento', muscle:'Core', tag:'fuerza', desc:'Tumbado boca arriba, brazos y piernas al aire a 90°. Extiende simultáneamente el brazo derecho y la pierna izquierda hasta casi tocar el suelo. Vuelve. Espalda lumbar pegada al suelo en todo momento.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d1f2e" rx="8"/><circle cx="90" cy="30" r="8" fill="#5DCAA5"/><line x1="90" y1="38" x2="90" y2="65" stroke="#5DCAA5" stroke-width="2.5"/><line x1="90" y1="48" x2="30" y2="35" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="48" x2="150" y2="58" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="65" x2="140" y2="80" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="65" x2="40" y2="78" stroke="#5DCAA5" stroke-width="1.5" stroke-dasharray="3,2"/></svg>'},
+      {name:'Bird dog', sets:'3 × 10 c/lado', muscle:'Core / lumbar', tag:'fuerza', desc:'A cuatro patas. Extiende simultáneamente el brazo derecho y la pierna izquierda en línea con el cuerpo. Aguanta 2 segundos. Core activado. No rotes las caderas.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d1f2e" rx="8"/><circle cx="90" cy="35" r="7" fill="#5DCAA5"/><line x1="90" y1="42" x2="90" y2="62" stroke="#5DCAA5" stroke-width="2.5"/><line x1="90" y1="50" x2="55" y2="50" stroke="#5DCAA5" stroke-width="2"/><line x1="55" y1="50" x2="35" y2="38" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="50" x2="125" y2="50" stroke="#5DCAA5" stroke-width="2"/><line x1="125" y1="50" x2="148" y2="62" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="62" x2="70" y2="78" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="62" x2="110" y2="78" stroke="#5DCAA5" stroke-width="2"/></svg>'},
+      {name:'Hollow body hold', sets:'3 × 25 segundos', muscle:'Core anterior', tag:'fuerza', desc:'Tumbado boca arriba. Despega hombros y piernas del suelo, brazos extendidos atrás. Zona lumbar pegada al suelo. Aguanta la tensión. Base de toda la gimnasia artística.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d1f2e" rx="8"/><circle cx="90" cy="50" r="7" fill="#5DCAA5"/><line x1="90" y1="43" x2="20" y2="35" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="43" x2="160" y2="35" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="57" x2="20" y2="65" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="57" x2="160" y2="65" stroke="#5DCAA5" stroke-width="2"/><path d="M20 65 Q90 80 160 65" stroke="#1D9E75" stroke-width="1" fill="none" stroke-dasharray="3,3"/></svg>'},
+      {name:'Glute bridge', sets:'3 × 15', muscle:'Glúteo / lumbar', tag:'fuerza', desc:'Tumbado boca arriba, rodillas flexionadas. Empuja caderas hacia arriba apretando glúteo. Aguanta 1 segundo arriba. Activa glúteo y desactiva la tensión lumbar. Clave para la corrección de hiperlordosis.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d1f2e" rx="8"/><circle cx="55" cy="30" r="7" fill="#5DCAA5"/><line x1="55" y1="37" x2="65" y2="55" stroke="#5DCAA5" stroke-width="2.5"/><path d="M65 55 Q90 35 115 55" stroke="#5DCAA5" stroke-width="2.5" fill="none"/><line x1="115" y1="55" x2="115" y2="78" stroke="#5DCAA5" stroke-width="2.5"/><line x1="65" y1="55" x2="65" y2="78" stroke="#5DCAA5" stroke-width="2.5"/><line x1="40" y1="78" x2="140" y2="78" stroke="#1D9E75" stroke-width="1.5"/></svg>'},
+    ]
+  },
+  { name:'Mié', short:'X', type:'Tirón + Circo', color:'#D4537E', icon:'🤸',
+    exercises:[
+      {name:'Pull-ups', sets:'5 × máximo', muscle:'Dorsal / bíceps', tag:'fuerza', desc:'Agarre prono, manos algo más que ancho hombros. Parte del muerto completo. Lleva el pecho hacia la barra. Escápulas activadas durante todo el movimiento. Si no puedes: negativas 5×5 (baja en 4 segundos).', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2a1020" rx="8"/><line x1="30" y1="20" x2="150" y2="20" stroke="#D4537E" stroke-width="3"/><circle cx="90" cy="38" r="7" fill="#ED93B1"/><line x1="90" y1="45" x2="90" y2="65" stroke="#ED93B1" stroke-width="2.5"/><line x1="90" y1="52" x2="65" y2="42" stroke="#ED93B1" stroke-width="2"/><line x1="65" y1="42" x2="60" y2="22" stroke="#ED93B1" stroke-width="1.5"/><line x1="90" y1="52" x2="115" y2="42" stroke="#ED93B1" stroke-width="2"/><line x1="115" y1="42" x2="120" y2="22" stroke="#ED93B1" stroke-width="1.5"/><line x1="90" y1="65" x2="76" y2="80" stroke="#ED93B1" stroke-width="2"/><line x1="90" y1="65" x2="104" y2="80" stroke="#ED93B1" stroke-width="2"/></svg>'},
+      {name:'Inverted rows', sets:'4 × 12', muscle:'Espalda media', tag:'fuerza', desc:'Tumbado bajo una barra o mesa resistente. Cuerpo rígido como tabla. Tira del pecho hacia la barra. Escápulas juntas arriba. Es el equivalente al remo en peso corporal.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2a1020" rx="8"/><line x1="30" y1="30" x2="150" y2="30" stroke="#D4537E" stroke-width="3"/><circle cx="90" cy="55" r="7" fill="#ED93B1"/><line x1="90" y1="48" x2="65" y2="32" stroke="#ED93B1" stroke-width="1.5"/><line x1="90" y1="48" x2="115" y2="32" stroke="#ED93B1" stroke-width="1.5"/><line x1="90" y1="62" x2="60" y2="65" stroke="#ED93B1" stroke-width="2.5"/><line x1="90" y1="62" x2="120" y2="65" stroke="#ED93B1" stroke-width="2.5"/><line x1="90" y1="62" x2="40" y2="68" stroke="#ED93B1" stroke-width="2"/><line x1="90" y1="62" x2="140" y2="68" stroke="#ED93B1" stroke-width="2"/></svg>'},
+      {name:'Chin-ups', sets:'3 × 8', muscle:'Bíceps / dorsal', tag:'fuerza', desc:'Agarre supino (palmas hacia ti), manos ancho de hombros. Mayor activación de bíceps que los pull-ups. Parte del muerto completo. Lleva el mentón por encima de la barra.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2a1020" rx="8"/><line x1="30" y1="20" x2="150" y2="20" stroke="#D4537E" stroke-width="3"/><circle cx="90" cy="35" r="7" fill="#ED93B1"/><line x1="90" y1="42" x2="90" y2="62" stroke="#ED93B1" stroke-width="2.5"/><line x1="90" y1="50" x2="68" y2="40" stroke="#ED93B1" stroke-width="2"/><line x1="68" y1="40" x2="66" y2="22" stroke="#ED93B1" stroke-width="1.5"/><line x1="90" y1="50" x2="112" y2="40" stroke="#ED93B1" stroke-width="2"/><line x1="112" y1="40" x2="114" y2="22" stroke="#ED93B1" stroke-width="1.5"/><line x1="90" y1="62" x2="76" y2="78" stroke="#ED93B1" stroke-width="2"/><line x1="90" y1="62" x2="104" y2="78" stroke="#ED93B1" stroke-width="2"/></svg>'},
+      {name:'Práctica de circo', sets:'25 min · técnica libre', muscle:'Full body', tag:'circo', desc:'Foco en fuerza de agarre y core en suspensión. Trabaja las transiciones y los elementos en los que estés más débil. Calidad por encima de cantidad. La práctica de circo activa patrones motores que el gym no trabaja.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2a1020" rx="8"/><circle cx="90" cy="25" r="14" fill="none" stroke="#D4537E" stroke-width="2.5"/><circle cx="90" cy="25" r="7" fill="#D4537E"/><line x1="90" y1="39" x2="90" y2="65" stroke="#ED93B1" stroke-width="2.5"/><line x1="90" y1="50" x2="62" y2="42" stroke="#ED93B1" stroke-width="2"/><line x1="90" y1="50" x2="118" y2="42" stroke="#ED93B1" stroke-width="2"/><line x1="90" y1="65" x2="72" y2="82" stroke="#ED93B1" stroke-width="2"/><line x1="90" y1="65" x2="108" y2="82" stroke="#ED93B1" stroke-width="2"/></svg>'},
+    ]
+  },
+  { name:'Jue', short:'J', type:'HIIT + Movilidad', color:'#EF9F27', icon:'⚡',
+    exercises:[
+      {name:'Tabata Jumping squats', sets:'8 rondas · 20s/10s', muscle:'Piernas / glúteo', tag:'hiit', desc:'20 segundos de saltos con sentadilla al máximo, 10 segundos de descanso. 8 rondas = 4 minutos. Mantén la espalda recta al bajar. Aterriza suave para proteger rodillas.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2e1f0a" rx="8"/><circle cx="90" cy="18" r="7" fill="#EF9F27"/><line x1="90" y1="25" x2="90" y2="48" stroke="#EF9F27" stroke-width="2.5"/><line x1="90" y1="34" x2="68" y2="44" stroke="#EF9F27" stroke-width="2"/><line x1="90" y1="34" x2="112" y2="44" stroke="#EF9F27" stroke-width="2"/><line x1="90" y1="48" x2="72" y2="65" stroke="#EF9F27" stroke-width="2"/><line x1="90" y1="48" x2="108" y2="65" stroke="#EF9F27" stroke-width="2"/><line x1="68" y1="12" x2="76" y2="20" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="2,2"/><line x1="112" y1="12" x2="104" y2="20" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="2,2"/></svg>'},
+      {name:'Hip flexor stretch', sets:'2 min c/lado', muscle:'Flexores cadera', tag:'movilidad', desc:'En posición de lunge, rodilla trasera en el suelo. Empuja caderas adelante y abajo. Mantén el torso erguido. Este estiramiento es clave para corregir la hiperlordosis lumbar detectada en las fotos.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2e1f0a" rx="8"/><circle cx="70" cy="25" r="7" fill="#EF9F27"/><line x1="70" y1="32" x2="80" y2="55" stroke="#EF9F27" stroke-width="2.5"/><line x1="70" y1="40" x2="45" y2="48" stroke="#EF9F27" stroke-width="2"/><line x1="80" y1="55" x2="60" y2="70" stroke="#EF9F27" stroke-width="2"/><line x1="60" y1="70" x2="40" y2="85" stroke="#EF9F27" stroke-width="1.5"/><line x1="80" y1="55" x2="100" y2="75" stroke="#EF9F27" stroke-width="2"/><line x1="100" y1="75" x2="140" y2="80" stroke="#EF9F27" stroke-width="1.5"/><path d="M100 75 Q120 60 135 50" stroke="#EF9F27" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/></svg>'},
+      {name:'Pigeon pose', sets:'2 min c/lado', muscle:'Cadera / piriforme', tag:'movilidad', desc:'Desde la plancha, lleva una rodilla entre las manos con la pierna doblada en ángulo. La otra pierna queda extendida atrás. Lleva el torso hacia el suelo. Libera el piriforme y la rotación externa de cadera.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2e1f0a" rx="8"/><circle cx="75" cy="30" r="7" fill="#EF9F27"/><line x1="75" y1="37" x2="80" y2="58" stroke="#EF9F27" stroke-width="2.5"/><path d="M80 58 Q100 72 130 68" stroke="#EF9F27" stroke-width="2" fill="none"/><path d="M80 58 Q65 72 40 75" stroke="#EF9F27" stroke-width="2" fill="none"/><line x1="40" y1="75" x2="130" y2="68" stroke="#EF9F27" stroke-width="1" stroke-dasharray="2,3"/></svg>'},
+      {name:'World\'s greatest stretch', sets:'8 reps c/lado', muscle:'Movilidad total', tag:'movilidad', desc:'El estiramiento más completo en un solo movimiento: desde plancha → pie adelante junto a la mano → codo al suelo → rotación del torso con brazo al cielo. Trabaja cadera, columna torácica y hombros.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#2e1f0a" rx="8"/><circle cx="55" cy="28" r="6" fill="#EF9F27"/><line x1="55" y1="34" x2="68" y2="58" stroke="#EF9F27" stroke-width="2.5"/><line x1="55" y1="44" x2="30" y2="50" stroke="#EF9F27" stroke-width="2"/><line x1="30" y1="50" x2="20" y2="68" stroke="#EF9F27" stroke-width="1.5"/><line x1="68" y1="58" x2="48" y2="72" stroke="#EF9F27" stroke-width="2"/><line x1="68" y1="58" x2="100" y2="62" stroke="#EF9F27" stroke-width="2"/><line x1="100" y1="62" x2="148" y2="60" stroke="#EF9F27" stroke-width="1.5"/><path d="M55 44 Q85 30 110 18" stroke="#EF9F27" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/><circle cx="112" cy="17" r="4" fill="#EF9F27" opacity="0.6"/></svg>'},
+    ]
+  },
+  { name:'Vie', short:'V', type:'Pierna + Core', color:'#0F6E56', icon:'🦵',
+    exercises:[
+      {name:'Pistol squat', sets:'4 × 6-8 c/lado', muscle:'Cuádriceps / glúteo', tag:'fuerza', desc:'Sentadilla a una pierna. Pierna libre extendida al frente. Desciende hasta el final del rango. Si no puedes: comienza con apoyo en pared o usando una silla para la progresión. La más funcional de las sentadillas.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d2218" rx="8"/><circle cx="90" cy="22" r="7" fill="#5DCAA5"/><line x1="90" y1="29" x2="90" y2="55" stroke="#5DCAA5" stroke-width="2.5"/><line x1="90" y1="38" x2="68" y2="46" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="38" x2="112" y2="46" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="55" x2="78" y2="78" stroke="#5DCAA5" stroke-width="2.5"/><line x1="78" y1="78" x2="72" y2="90" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="55" x2="130" y2="52" stroke="#5DCAA5" stroke-width="2"/><line x1="130" y1="52" x2="155" y2="50" stroke="#5DCAA5" stroke-width="1.5" stroke-dasharray="3,2"/></svg>'},
+      {name:'Bulgarian split squat', sets:'4 × 10 c/lado', muscle:'Cuádriceps / glúteo', tag:'fuerza', desc:'Pie trasero elevado en silla. Desciende la rodilla trasera hacia el suelo. Torso erguido. Mayor activación de glúteo e isquio que la sentadilla convencional. Más fácil que el pistol squat.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d2218" rx="8"/><rect x="130" y="55" width="35" height="12" rx="3" fill="#1D9E75"/><circle cx="72" cy="22" r="7" fill="#5DCAA5"/><line x1="72" y1="29" x2="80" y2="52" stroke="#5DCAA5" stroke-width="2.5"/><line x1="72" y1="38" x2="48" y2="46" stroke="#5DCAA5" stroke-width="2"/><line x1="80" y1="52" x2="62" y2="72" stroke="#5DCAA5" stroke-width="2.5"/><line x1="80" y1="52" x2="108" y2="58" stroke="#5DCAA5" stroke-width="2"/><line x1="108" y1="58" x2="132" y2="55" stroke="#5DCAA5" stroke-width="1.5"/></svg>'},
+      {name:'Nordic curl', sets:'3 × 5-6', muscle:'Isquiotibiales', tag:'fuerza', desc:'Rodillas en el suelo con pies sujetos bajo algo pesado. Desciende lentamente hacia el suelo controlando con los isquios. Es el ejercicio más efectivo para los isquiotibiales en peso corporal. Muy difícil al principio.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d2218" rx="8"/><circle cx="50" cy="40" r="7" fill="#5DCAA5"/><line x1="50" y1="47" x2="50" y2="68" stroke="#5DCAA5" stroke-width="2.5"/><line x1="50" y1="55" x2="30" y2="62" stroke="#5DCAA5" stroke-width="2"/><line x1="50" y1="55" x2="70" y2="62" stroke="#5DCAA5" stroke-width="2"/><line x1="50" y1="68" x2="38" y2="82" stroke="#5DCAA5" stroke-width="2"/><line x1="50" y1="68" x2="62" y2="82" stroke="#5DCAA5" stroke-width="2"/><path d="M62 82 Q90 90 118 82" stroke="#1D9E75" stroke-width="1.5" fill="none"/><rect x="115" y="78" width="20" height="8" rx="2" fill="#1D9E75"/></svg>'},
+      {name:'L-sit', sets:'4 × máximo tiempo', muscle:'Core / flexores cadera', tag:'fuerza', desc:'En paralelas o suelo: brazos extendidos, piernas a 90° paralelas al suelo. El ejercicio de core más completo del entrenamiento con peso corporal. Empieza con Tuck L-sit (rodillas dobladas) si no puedes la versión completa.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d2218" rx="8"/><line x1="55" y1="30" x2="55" y2="78" stroke="#1D9E75" stroke-width="3"/><line x1="125" y1="30" x2="125" y2="78" stroke="#1D9E75" stroke-width="3"/><circle cx="90" cy="48" r="7" fill="#5DCAA5"/><line x1="90" y1="55" x2="90" y2="72" stroke="#5DCAA5" stroke-width="2.5"/><line x1="90" y1="62" x2="57" y2="56" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="62" x2="123" y2="56" stroke="#5DCAA5" stroke-width="2"/><line x1="90" y1="72" x2="58" y2="72" stroke="#5DCAA5" stroke-width="2.5"/><line x1="58" y1="72" x2="30" y2="72" stroke="#5DCAA5" stroke-width="2"/></svg>'},
+      {name:'Ab wheel rollout', sets:'3 × 8-10', muscle:'Core completo', tag:'fuerza', desc:'De rodillas con la rueda ab en las manos. Extiéndete hacia adelante manteniendo el core completamente rígido. Vuelve controlando. No permitas que la zona lumbar se curve. Uno de los mejores ejercicios de core.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0d2218" rx="8"/><circle cx="50" cy="35" r="7" fill="#5DCAA5"/><line x1="50" y1="42" x2="65" y2="62" stroke="#5DCAA5" stroke-width="2.5"/><line x1="50" y1="50" x2="30" y2="58" stroke="#5DCAA5" stroke-width="2"/><line x1="65" y1="62" x2="50" y2="80" stroke="#5DCAA5" stroke-width="2"/><line x1="65" y1="62" x2="130" y2="60" stroke="#5DCAA5" stroke-width="2"/><circle cx="138" cy="65" r="8" fill="none" stroke="#1D9E75" stroke-width="2"/><circle cx="138" cy="65" r="3" fill="#1D9E75"/></svg>'},
+    ]
+  },
+  { name:'Sáb', short:'S', type:'Circo / Funcional', color:'#3B6D11', icon:'🎪',
+    exercises:[
+      {name:'Calentamiento específico', sets:'15 min', muscle:'Global', tag:'circo', desc:'Movilidad articular de todo el cuerpo comenzando por los pies. Ondulaciones de columna, círculos de hombros, activación de escápulas. Prepara el sistema nervioso para el trabajo técnico.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0f1f05" rx="8"/><circle cx="90" cy="22" r="7" fill="#97C459"/><path d="M90 29 Q105 45 90 55 Q75 65 90 78" stroke="#97C459" stroke-width="2.5" fill="none"/><circle cx="90" cy="80" r="3" fill="#97C459"/><path d="M70 38 Q65 50 72 60" stroke="#639922" stroke-width="1.5" fill="none" stroke-dasharray="2,2"/><path d="M110 38 Q115 50 108 60" stroke="#639922" stroke-width="1.5" fill="none" stroke-dasharray="2,2"/></svg>'},
+      {name:'Práctica técnica', sets:'35 min · aparato / disciplina', muscle:'Específico', tag:'circo', desc:'Trabaja los elementos técnicos de tu disciplina de circo. La práctica deliberada de habilidades activa patrones neuromusculares que el entrenamiento de fuerza no cubre. Calidad sobre cantidad siempre.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0f1f05" rx="8"/><circle cx="90" cy="18" r="22" fill="none" stroke="#3B6D11" stroke-width="2.5"/><circle cx="90" cy="18" r="10" fill="none" stroke="#97C459" stroke-width="2"/><circle cx="90" cy="18" r="3" fill="#97C459"/><line x1="90" y1="40" x2="90" y2="65" stroke="#97C459" stroke-width="2.5"/><line x1="90" y1="52" x2="65" y2="46" stroke="#97C459" stroke-width="2"/><line x1="90" y1="52" x2="115" y2="46" stroke="#97C459" stroke-width="2"/><line x1="90" y1="65" x2="74" y2="82" stroke="#97C459" stroke-width="2"/><line x1="90" y1="65" x2="106" y2="82" stroke="#97C459" stroke-width="2"/></svg>'},
+      {name:'Fuerza de aparato', sets:'10 min · específico', muscle:'Fuerza aplicada', tag:'circo', desc:'Trabaja los elementos de fuerza específicos del aparato: compresiones, telas, mástil, aros. Esta transferencia directa entre fuerza general y técnica de circo es lo que marca la diferencia a largo plazo.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#0f1f05" rx="8"/><line x1="90" y1="10" x2="90" y2="35" stroke="#3B6D11" stroke-width="2"/><circle cx="90" cy="42" r="14" fill="none" stroke="#97C459" stroke-width="2.5"/><circle cx="90" cy="55" r="7" fill="#97C459"/><line x1="90" y1="62" x2="90" y2="80" stroke="#97C459" stroke-width="2.5"/><line x1="90" y1="70" x2="68" y2="62" stroke="#97C459" stroke-width="2"/><line x1="90" y1="70" x2="112" y2="62" stroke="#97C459" stroke-width="2"/></svg>'},
+    ]
+  },
+  { name:'Dom', short:'D', type:'Descanso activo', color:'#666', icon:'🧘',
+    exercises:[
+      {name:'Caminar', sets:'30-45 min · ritmo tranquilo', muscle:'Recuperación', tag:'activo', desc:'Caminar a ritmo conversacional. Sin frecuencia cardíaca elevada. Favorece la recuperación activa, la circulación y el vaciado de lactato muscular. No cuenta como entrenamiento, cuenta como recuperación.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#111" rx="8"/><circle cx="90" cy="22" r="7" fill="#888"/><line x1="90" y1="29" x2="88" y2="55" stroke="#888" stroke-width="2.5"/><line x1="88" y1="40" x2="68" y2="50" stroke="#888" stroke-width="2"/><line x1="68" y1="50" x2="55" y2="42" stroke="#888" stroke-width="1.5"/><line x1="88" y1="40" x2="108" y2="35" stroke="#888" stroke-width="2"/><line x1="88" y1="55" x2="72" y2="78" stroke="#888" stroke-width="2"/><line x1="88" y1="55" x2="100" y2="80" stroke="#888" stroke-width="2"/></svg>'},
+      {name:'Movilidad articular', sets:'15-20 min · todo el cuerpo', muscle:'Recuperación', tag:'activo', desc:'Círculos de cuello, hombros, caderas, rodillas y tobillos. Sin llegar a estiramiento de alta intensidad. El objetivo es lubricar las articulaciones y mantener el rango de movimiento.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#111" rx="8"/><circle cx="90" cy="22" r="7" fill="#888"/><path d="M55 55 Q65 30 90 35 Q115 40 125 55 Q135 70 120 80 Q105 90 90 85 Q75 80 60 70 Q45 60 55 55Z" fill="none" stroke="#666" stroke-width="1.5" stroke-dasharray="3,2"/><circle cx="90" cy="55" r="4" fill="#888"/></svg>'},
+      {name:'Sin cargas · sin intensidad', sets:'Recuperación total', muscle:'Sistema nervioso', tag:'activo', desc:'El descanso es parte del entrenamiento. El músculo crece y la grasa se reduce durante la recuperación, no durante el ejercicio. Sin entrenamiento hoy. Si quieres hacer algo, una caminata suave es el máximo.', svg:'<svg width="180" height="100" viewBox="0 0 180 100"><rect width="180" height="100" fill="#111" rx="8"/><circle cx="90" cy="50" r="30" fill="none" stroke="#333" stroke-width="2"/><circle cx="90" cy="50" r="20" fill="none" stroke="#444" stroke-width="1.5"/><circle cx="90" cy="50" r="10" fill="#333"/><line x1="90" y1="20" x2="90" y2="15" stroke="#666" stroke-width="2"/><line x1="90" y1="80" x2="90" y2="85" stroke="#666" stroke-width="2"/><line x1="60" y1="50" x2="55" y2="50" stroke="#666" stroke-width="2"/><line x1="120" y1="50" x2="125" y2="50" stroke="#666" stroke-width="2"/></svg>'},
+    ]
+  },
+];
+
+const MEALS = [
+  { title:'Desayuno', kcal:550, time:'7-8h', items:[
+    {e:'🌾',name:'Avena 80g + leche vegetal',macro:'52g C'},
+    {e:'🟤',name:'Proteína vegana 1 scoop',macro:'22g P'},
+    {e:'🍌',name:'Plátano mediano',macro:'27g C'},
+    {e:'🌿',name:'Semillas cáñamo 20g',macro:'10g P'},
+  ]},
+  { title:'Media mañana', kcal:300, time:'10-11h', items:[
+    {e:'🟢',name:'Edamame 150g',macro:'18g P'},
+    {e:'🥜',name:'Frutos secos mix 30g',macro:'6g P · 15g G'},
+  ]},
+  { title:'Almuerzo', kcal:600, time:'13-14h', items:[
+    {e:'🟤',name:'Tempeh 150g salteado',macro:'24g P'},
+    {e:'🍚',name:'Arroz integral 100g seco',macro:'76g C'},
+    {e:'🥦',name:'Verduras abundantes',macro:'fibra'},
+    {e:'🫒',name:'AOVE 10ml',macro:'10g G'},
+  ]},
+  { title:'Merienda', kcal:250, time:'16-17h', items:[
+    {e:'⬜',name:'Tofu sedoso 200g',macro:'16g P'},
+    {e:'🍊',name:'Fruta de temporada',macro:'20g C'},
+    {e:'⚫',name:'Semillas chía 15g',macro:'5g P · 5g G'},
+  ]},
+  { title:'Cena', kcal:500, time:'19-20h', items:[
+    {e:'🔴',name:'Lentejas cocidas 200g',macro:'18g P'},
+    {e:'🌾',name:'Quinoa 80g seco',macro:'11g P · 58g C'},
+    {e:'🥑',name:'Aguacate 1/2',macro:'15g G'},
+    {e:'🥗',name:'Verduras al vapor',macro:'fibra'},
+  ]},
+];
+
+const SUPPS = [
+  {icon:'🔵',name:'B12',dose:'1000 mcg',key:'b12'},
+  {icon:'⚪',name:'Creatina',dose:'5g/día',key:'creatina'},
+  {icon:'🟡',name:'Vitamina D3',dose:'2000-4000 UI',key:'vitd'},
+  {icon:'🟠',name:'Omega-3',dose:'250-500mg DHA',key:'omega'},
+  {icon:'⚫',name:'Zinc',dose:'15-25mg',key:'zinc'},
+  {icon:'🟢',name:'Electrolitos',dose:'Post entreno',key:'elec'},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let waterCount = 6;
+let selectedDay = 0;
+
+function getStorage(key, fallback) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
+  catch(e) { return fallback; }
+}
+function setStorage(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+
+function renderTodayExercises() {
+  const container = document.getElementById('today-exercises');
+  const day = DAYS[0];
+  container.innerHTML = day.exercises.map(ex => `
+    <div class="ex-item" onclick="openModal(${JSON.stringify(ex).replace(/"/g,'&quot;')})">
+      <div class="ex-vis">${ex.svg}</div>
+      <div class="ex-info">
+        <div class="ex-name">${ex.name}</div>
+        <div class="ex-sets">${ex.sets}</div>
+      </div>
+      <span class="ex-tag ${ex.tag==='hiit'?'hiit':ex.tag==='circo'?'hiit':''}">${ex.muscle}</span>
+    </div>
+  `).join('');
+}
+
+function renderWater(containerId, infoId) {
+  const c = document.getElementById(containerId);
+  const info = document.getElementById(infoId);
+  waterCount = getStorage('water', 6);
+  c.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const g = document.createElement('div');
+    g.className = 'glass' + (i < waterCount ? ' filled' : '');
+    g.textContent = '💧';
+    g.onclick = () => {
+      waterCount = (i < waterCount) ? i : i + 1;
+      setStorage('water', waterCount);
+      renderWater('glasses-dash','water-info-dash');
+      renderWater('glasses-nut','water-info-nut');
+    };
+    c.appendChild(g);
+  }
+  if (info) info.textContent = `${waterCount}/10 vasos · ${(waterCount*0.3).toFixed(1)}L de 3L objetivo`;
+}
+
+function renderDayScroll() {
+  const scroll = document.getElementById('day-scroll');
+  scroll.innerHTML = DAYS.map((d,i) => `
+    <div class="day-pill ${i===selectedDay?'active':''}" onclick="selectDay(${i})">
+      <div class="day-pill-name" style="${i===selectedDay?'color:#fff':''}">${d.name}</div>
+      <div class="day-pill-type">${d.type.split(' ').slice(0,2).join(' ')}</div>
+    </div>
+  `).join('');
+}
+
+function selectDay(i) {
+  selectedDay = i;
+  renderDayScroll();
+  renderDayDetail();
+}
+
+function renderDayDetail() {
+  const d = DAYS[selectedDay];
+  const container = document.getElementById('day-detail-content');
+  container.innerHTML = `
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:${d.color}22;display:flex;align-items:center;justify-content:center;font-size:20px;">${d.icon}</div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);">${d.name} · ${d.type}</div>
+          <div style="font-size:12px;color:var(--text3);">${d.exercises.length} ejercicios programados</div>
+        </div>
+      </div>
+      ${d.exercises.map(ex => `
+        <div class="ex-item" onclick="openModal(${JSON.stringify(ex).replace(/"/g,'&quot;')})">
+          <div class="ex-vis">${ex.svg}</div>
+          <div class="ex-info">
+            <div class="ex-name">${ex.name}</div>
+            <div class="ex-sets">${ex.sets}</div>
+          </div>
+          <span class="ex-tag ${ex.tag==='hiit'||ex.tag==='circo'?'hiit':''}">${ex.muscle}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderMeals() {
+  const c = document.getElementById('meals-container');
+  c.innerHTML = MEALS.map(m => `
+    <div class="card" style="margin-bottom:8px;">
+      <div class="meal-header">
+        <div class="meal-title">${m.title} <span style="font-size:11px;color:var(--text3);font-weight:400;">${m.time}</span></div>
+        <div class="meal-kcal">${m.kcal} kcal</div>
+      </div>
+      ${m.items.map(item => `
+        <div class="food-row">
+          <span class="food-emoji">${item.e}</span>
+          <span class="food-name">${item.name}</span>
+          <span class="food-macro">${item.macro}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function renderSupps() {
+  const done = getStorage('supps', {});
+  const c = document.getElementById('supps-container');
+  c.innerHTML = SUPPS.map(s => `
+    <div class="supp-card ${done[s.key]?'done':''}" onclick="toggleSupp('${s.key}')">
+      <div class="supp-icon">${s.icon}</div>
+      <div class="supp-name">${s.name}</div>
+      <div class="supp-dose">${s.dose}</div>
+      <div class="supp-btn">${done[s.key]?'✓ Listo':'Marcar'}</div>
+    </div>
+  `).join('');
+}
+
+function toggleSupp(key) {
+  const done = getStorage('supps', {});
+  done[key] = !done[key];
+  setStorage('supps', done);
+  renderSupps();
+}
+
+function renderCharts() {
+  const visceral = [11,10.8,10.5,10.2,10,9.7,9.4,9.2,9,8.8,8.6,8.4,8.2,8,7.8];
+  const fat = [21.2,21,20.7,20.4,20,19.5,19,18.5,18,17.5,17,16.5,16,15.5,15];
+  drawChart('chart-visceral', visceral, 9, '#E24B4A', '#1D9E75', 7, 12);
+  drawChart('chart-fat', fat, 16, '#EF9F27', '#1D9E75', 14, 22);
+}
+
+function drawChart(id, data, target, lineColor, targetColor, yMin, yMax) {
+  const svg = document.getElementById(id);
+  if (!svg) return;
+  const w = 340, h = 100, pad = {l:30,r:10,t:10,b:20};
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+  const n = data.length;
+  const xStep = cw / (n - 1);
+  const yScale = v => pad.t + ch - ((v - yMin) / (yMax - yMin)) * ch;
+  const pts = data.map((v,i) => `${pad.l + i * xStep},${yScale(v)}`).join(' ');
+  const targetY = yScale(target);
+  const areaTop = data.map((v,i) => `${pad.l + i * xStep},${yScale(v)}`).join(' ');
+  const areaPath = `M${pad.l},${yScale(data[0])} L${areaTop} L${pad.l+cw},${h-pad.b} L${pad.l},${h-pad.b}Z`;
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="grad-${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="${lineColor}" stop-opacity="0.02"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaPath}" fill="url(#grad-${id})"/>
+    <line x1="${pad.l}" y1="${targetY}" x2="${pad.l+cw}" y2="${targetY}" stroke="${targetColor}" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <polyline points="${pts}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${data.map((v,i) => `<circle cx="${pad.l+i*xStep}" cy="${yScale(v)}" r="2.5" fill="${lineColor}"/>`).join('')}
+    ${[0,4,9,14].map(i => `<text x="${pad.l+i*xStep}" y="${h}" text-anchor="middle" font-size="9" fill="#555" font-family="-apple-system">S${i}</text>`).join('')}
+    <text x="2" y="${targetY+4}" font-size="9" fill="${targetColor}" font-family="-apple-system">${target}</text>
+  `;
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+
+function showTab(name, btn, title, subtitle) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('tab-title').textContent = title;
+  document.getElementById('tab-date').textContent = subtitle;
+  document.getElementById('scroll-area').scrollTop = 0;
+  if (name === 'progreso') renderCharts();
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────
+
+function openModal(ex) {
+  if (typeof ex === 'string') ex = JSON.parse(ex);
+  document.getElementById('m-title').textContent = ex.name;
+  document.getElementById('m-sub').textContent = ex.sets + ' · ' + ex.muscle;
+  document.getElementById('m-vis').innerHTML = ex.svg.replace('width="180" height="100"','width="100%" height="130"');
+  document.getElementById('m-desc').textContent = ex.desc;
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleModalClick(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+
+// ── DATE ──────────────────────────────────────────────────────────────────
+
+function setDate() {
+  const d = new Date();
+  const opts = {weekday:'long',day:'numeric',month:'long'};
+  document.getElementById('tab-date').textContent = d.toLocaleDateString('es-ES', opts);
+}
+
+// ── PWA ICON ──────────────────────────────────────────────────────────────
+
+function generateIcon() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 180; canvas.height = 180;
+  const ctx = canvas.getContext('2d');
+  const r = 40;
+  ctx.beginPath();
+  ctx.moveTo(r, 0); ctx.lineTo(180-r, 0);
+  ctx.quadraticCurveTo(180, 0, 180, r);
+  ctx.lineTo(180, 180-r); ctx.quadraticCurveTo(180, 180, 180-r, 180);
+  ctx.lineTo(r, 180); ctx.quadraticCurveTo(0, 180, 0, 180-r);
+  ctx.lineTo(0, r); ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.fillStyle = '#141414'; ctx.fill();
+  ctx.fillStyle = '#1D9E75';
+  ctx.beginPath(); ctx.arc(90, 70, 26, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#1D9E75'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(45, 130); ctx.quadraticCurveTo(90, 100, 135, 130); ctx.stroke();
+  document.getElementById('apple-touch-icon').href = canvas.toDataURL('image/png');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+
+window.addEventListener('load', () => {
+  generateIcon();
+  setDate();
+  renderTodayExercises();
+  renderWater('glasses-dash','water-info-dash');
+  renderWater('glasses-nut','water-info-nut');
+  renderDayScroll();
+  renderDayDetail();
+  renderMeals();
+  renderSupps();
+
+  setTimeout(() => {
+    document.getElementById('splash').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('splash').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+    }, 400);
+  }, 1600);
+});
+</script>
+</body>
+</html>
